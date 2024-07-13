@@ -53,7 +53,8 @@ const scheduledJobs = new mongoose.Schema({
     roomID: {type: String},
     gameID: {type: String, required: true},
     number: {type: String},
-    scheduledTime: {type: String, required: true}
+    scheduledTime: {type: String, required: true},
+    scheduledFor : {type : String}
 });
 
 const deviceLogs = new mongoose.Schema({

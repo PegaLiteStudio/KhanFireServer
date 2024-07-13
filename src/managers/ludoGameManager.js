@@ -1,6 +1,6 @@
 const {generateRandomID} = require("../helpers/appHelper");
 const {PrimaryUserModel} = require("../models/userModels");
-const {insertMatchWinTransaction} = require("./transactionManager");
+const {insertMatchWinTransaction, insertMatchRefundTransaction} = require("./transactionManager");
 const {RealtimeRoomModel, AllMatchesHistoryModel} = require("../models/contestModel");
 const {getIndianTime} = require("./timeManager");
 
@@ -14,11 +14,13 @@ class LudoGame {
     #SAFE_POSITIONS;
     #HOME_ENTRANCE;
     #timeout;
+    #matchExpireTimeOut;
     #MATCH;
 
     constructor(roomId, initTime, match) {
         this.#MATCH = match;
         this.DICE_THROW_ASK_TIMEOUT = 12000;
+        this.MATCH_EXPIRE_TIMEOUT = 30000;
         this.roomId = roomId;
         this.initTime = initTime;
         this.startTime = null;
@@ -71,6 +73,7 @@ class LudoGame {
         this.TURN = 0;
         this.state = 0;// 0 -> Not Started; 1 -> Playing; 2 -> End (Win!);
         this.#timeout = null;
+        this.#matchExpireTimeOut = null;
         this.diceNumber = null;
         this.responseCode = generateRandomID();
     }
@@ -80,11 +83,53 @@ class LudoGame {
             return;
         }
         this.state = 1;
+        this.startMatchExpire();
         console.log("Match Started")
         this.checkForDiceRoll("1")
     }
 
+    startMatchExpire() {
+        if (this.#matchExpireTimeOut) {
+            clearTimeout(this.#matchExpireTimeOut);
+            this.#matchExpireTimeOut = null;
+        }
+        this.#matchExpireTimeOut = setTimeout(async () => {
+            await this.cancelMatch();
+        }, this.MATCH_EXPIRE_TIMEOUT);
+    }
+
+    async cancelMatch() {
+        console.log("Match Cancelled");
+        this.state = 2;
+        this.publishUpdate("match-cancelled", this.generateResponseCode());
+        await PrimaryUserModel.updateOne({number : this.playersByTurn[0]}, {$inc: {gBalance: this.#MATCH.entryFee}});
+        await PrimaryUserModel.updateOne({number : this.playersByTurn[1]}, {$inc: {gBalance: this.#MATCH.entryFee}});
+        await insertMatchRefundTransaction(this.playersByTurn[0], this.#MATCH.entryFee, this.roomId);
+        await insertMatchRefundTransaction(this.playersByTurn[1], this.#MATCH.entryFee, this.roomId);
+        await RealtimeRoomModel.deleteOne({roomID: this.roomId});
+        let match = new AllMatchesHistoryModel({
+            matchID: this.#MATCH.matchID,
+            gameID: this.#MATCH.gameID,
+            roomID: this.roomId,
+            matchName: this.#MATCH.matchName,
+            prize: this.#MATCH.prize,
+            entryFee: this.#MATCH.entryFee,
+            matchInitTime: this.initTime,
+            matchStartTime: this.startTime,
+            matchEndTime: getIndianTime(),
+            player1: this.playersByTurn[0],
+            player2: this.playersByTurn[1],
+            winner: "null"
+        })
+        await match.save();
+        if (matches.hasOwnProperty(this.roomId)) {
+            delete matches[this.roomId];
+        }
+        this.cleanup();
+    }
+
     matchUpdate(...args) {
+        this.startMatchExpire();
         let msg = args[1];
         let responseCode = args[2];
         if (responseCode !== this.responseCode) {

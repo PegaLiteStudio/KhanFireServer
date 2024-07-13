@@ -134,7 +134,7 @@ const executePlayerWaitingScheduledJob = async (roomID, applyPenalty) => {
 const scheduleRealtimeMatchTimeOut = async (number, matchID, gameID, scheduledTime, insertJob) => {
     if (insertJob) {
         let job = new ScheduleJobModel({
-            matchID, gameID, number, scheduledTime
+            matchID, gameID, number, scheduledTime, scheduledFor: "realtime-match-timeout"
         });
         job.save();
     }
@@ -153,7 +153,7 @@ const scheduleRealtimeMatchTimeOut = async (number, matchID, gameID, scheduledTi
 const scheduleRealtimeMatchPlayerWaitingTimeOut = async (matchID, roomID, gameID, scheduledTime, insertJob) => {
     if (insertJob) {
         let job = new ScheduleJobModel({
-            matchID, roomID, gameID, scheduledTime
+            matchID, roomID, gameID, scheduledTime, scheduledFor: "realtime-match"
         });
         job.save();
     }
@@ -358,14 +358,14 @@ const loadScheduledJobs = async () => {
         job = job.toObject();
         const timeDifference = job.scheduledTime - Date.now();
         if (timeDifference > 0) {
-            if (job.hasOwnProperty("roomID")) {
+            if (job.scheduledFor === "realtime-match") {
                 await scheduleRealtimeMatchPlayerWaitingTimeOut(job.matchID, job.roomID, job.gameID, job.scheduledTime)
                 continue;
             }
             await scheduleRealtimeMatchTimeOut(job.number, job.matchID, job.gameID, job.scheduledTime);
             continue;
         }
-        if (job.hasOwnProperty("roomID")) {
+        if (job.scheduledFor === "realtime-match") {
             await executePlayerWaitingScheduledJob(job.roomID);
             continue
         }
