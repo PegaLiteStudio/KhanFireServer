@@ -17,12 +17,12 @@ class LudoGame {
     #matchExpireTimeOut;
     #MATCH;
 
-    constructor(roomId, initTime, match) {
+    constructor(roomId, match) {
         this.#MATCH = match;
         this.DICE_THROW_ASK_TIMEOUT = 12000;
-        this.MATCH_EXPIRE_TIMEOUT = 300000; // 5 Minutes
+        this.MATCH_EXPIRE_TIMEOUT = 30000; // 5 Minutes
         this.roomId = roomId;
-        this.initTime = initTime;
+        this.initTime = getIndianTime();
         this.startTime = null;
         this.players = {};
         this.playersReady = [];
@@ -83,6 +83,7 @@ class LudoGame {
             return;
         }
         this.state = 1;
+        this.startTime = getIndianTime();
         this.startMatchExpire();
         console.log("Match Started")
         this.checkForDiceRoll("1")
@@ -294,7 +295,7 @@ class LudoGame {
         this.state = 2;
         this.publishUpdate("player-win", this.generateResponseCode(), player);
         let number = this.#MATCH[player];
-        await PrimaryUserModel.updateOne({number}, {$inc: {wBalance: this.#MATCH.prize}});
+        await PrimaryUserModel.updateOne({number}, {$inc: {wBalance: this.#MATCH.prize, tWinnings : this.#MATCH.prize}});
         await insertMatchWinTransaction(number, this.#MATCH.prize, this.roomId);
         await RealtimeRoomModel.deleteOne({roomID: this.roomId});
         let match = new AllMatchesHistoryModel({

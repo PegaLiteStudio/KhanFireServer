@@ -337,8 +337,7 @@ const playerReady = async (roomID, playerNumber) => {
     let playerIndex = match.player1 === playerNumber ? "player1" : "player2";
 
     if (!matches.hasOwnProperty(roomID)) {
-        const scheduledTime = new Date(Date.now());
-        matches[roomID] = new LudoGame(roomID, scheduledTime.toISOString(), match.toObject());
+        matches[roomID] = new LudoGame(roomID, match.toObject());
     }
 
     matches[roomID].addPlayer(playerNumber, playerIndex);
