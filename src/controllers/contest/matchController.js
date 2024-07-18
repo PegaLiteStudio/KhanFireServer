@@ -353,7 +353,6 @@ const playerReady = async (roomID, playerNumber) => {
         if (matches.hasOwnProperty(roomID)) {
             delete matches[roomID];
         }
-        io.to(connectedUsers[playerNumber]).emit(roomID, "expired-waiting");
         return;
     }
     if (match.joins !== 2){
