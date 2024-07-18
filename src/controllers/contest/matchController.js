@@ -15,6 +15,9 @@ const scheduledJobs = {};
 const scheduledPlayerWaitingJobs = {};
 const PLAYER_SEARCH_EXPIRE = 1;
 const PLAYER_WAITING_EXPIRE = 1;
+const MAX_RETRIES = 12; // 12 times (every 5 seconds for 60 seconds)
+const RETRY_INTERVAL = 5000; // 5 seconds
+
 global.matches = {};
 
 /**
@@ -203,6 +206,25 @@ const onReconnect = (roomID, playerNumber) => {
         matches[roomID].onReconnect(playerNumber)
     }
 }
+
+function sendPlayerJoinedMessage(socketNumber, roomID, number, name, dp, attempt = 0) {
+    if (attempt >= MAX_RETRIES) {
+        console.log('Failed to deliver message after 60 seconds');
+        return;
+    }
+
+    io.to(connectedUsers[socketNumber]).emit(roomID, "joined", number, name, dp, (ack) => {
+        if (ack) {
+            console.log('Message delivered successfully');
+        } else {
+            console.log('Message delivery failed, retrying...');
+            setTimeout(() => {
+                sendPlayerJoinedMessage(socketNumber, roomID, number, name, dp, attempt + 1);
+            }, RETRY_INTERVAL);
+        }
+    });
+}
+
 const joinMatch = async (req, res) => {
     let {matchID} = req.params;
     let {number} = req.user;
@@ -293,7 +315,7 @@ const joinMatch = async (req, res) => {
 
             matchData = {matchID, roomID: match.roomID, number: player1.number, name: player1.name, dp: player1.dp};
             await scheduleRealtimeMatchPlayerWaitingTimeOut(matchID, match.roomID, gameID, scheduledTime, true)
-            io.to(connectedUsers[match.player1]).emit(match.roomID, "joined", req.user.number, req.user.name, req.user.dp);
+            sendPlayerJoinedMessage(match.player1, match.roomID, req.user.number, req.user.name, req.user.dp);
             await cancelScheduledRealtimeMatch(matchID);
         }
         io.emit(gameID + "-match-updated", matchID, "joined-2", number);
@@ -320,7 +342,7 @@ const playerReadyFinal = (roomID, playerNumber) => {
     matches[roomID].playerReady(playerNumber);
     if (matches[roomID].isReadyToStart()) {
         matches[roomID].startMath();
-        console.log("Match Start")
+        console.log("Match Started")
     }
 }
 
@@ -332,7 +354,10 @@ const playerReady = async (roomID, playerNumber) => {
             delete matches[roomID];
         }
         io.to(connectedUsers[playerNumber]).emit(roomID, "expired-waiting");
-        return
+        return;
+    }
+    if (match.joins !== 2){
+        return;
     }
     let playerIndex = match.player1 === playerNumber ? "player1" : "player2";
 
