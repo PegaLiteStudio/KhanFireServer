@@ -28,12 +28,19 @@ const path = require("path");
 const multer = require("multer");
 const {generateRandomID} = require("../helpers/appHelper");
 const {getGames} = require("../controllers/admin/adminContestActions");
+const {getAnalytics} = require("../controllers/admin/adminAnalyticsActions");
+const {uploadNotificationImage, getNotificationImages, sendNotificationFromAdmin} = require("../controllers/admin/adminNotificationActions");
 const router = express.Router();
 const sliderImagePath = path.join(__dirname, "../../data/app/slider/")
+const notificationImagePath = path.join(__dirname, "../../data/app/notification/")
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, sliderImagePath);
+        if (req.params.hasOwnProperty("isNotification")) {
+            cb(null, notificationImagePath);
+        } else {
+            cb(null, sliderImagePath);
+        }
     }, filename: (req, file, cb) => {
         let tempFilename = file.originalname;
         let type = tempFilename.substring(tempFilename.lastIndexOf(".") + 1);
@@ -44,7 +51,7 @@ const storage = multer.diskStorage({
     },
 });
 
-const upload = multer({storage: storage});
+const upload = multer({storage});
 
 router.post("/auth/login", adminLogin);
 router.post("/auth/sessionLogin", verifyAdminJWT, adminSessionLogin);
@@ -80,5 +87,11 @@ router.post("/actions/uploadSliderImage", verifyAdminJWT, upload.single('image')
 router.post("/actions/deleteSliderImages/:img", verifyAdminJWT, deleteImageSlider);
 
 router.post("/actions/getGames", verifyAdminJWT, getGames);
+
+router.post("/actions/getAnalytics", verifyAdminJWT, getAnalytics);
+
+router.post("/actions/getNotificationImages", verifyAdminJWT, getNotificationImages);
+router.post("/actions/uploadNotificationImage/:isNotification", verifyAdminJWT, upload.single('image'), uploadNotificationImage);
+router.post("/actions/sendNotificationFromAdmin", verifyAdminJWT, sendNotificationFromAdmin);
 
 module.exports = router;

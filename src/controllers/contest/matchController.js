@@ -311,6 +311,8 @@ const joinMatch = async (req, res) => {
             });
             await realtimeRoom.save();
 
+            console.log("Realtime Match Saved")
+
             let player1 = await PrimaryUserModel.findOne({number: match.player1});
 
             matchData = {matchID, roomID: match.roomID, number: player1.number, name: player1.name, dp: player1.dp};
@@ -347,15 +349,12 @@ const playerReadyFinal = (roomID, playerNumber) => {
 }
 
 const playerReady = async (roomID, playerNumber) => {
-    console.log("player Ready")
+    console.log("player Ready", playerNumber)
     let match = await RealtimeRoomModel.findOne({roomID});
     if (!match) {
         if (matches.hasOwnProperty(roomID)) {
             delete matches[roomID];
         }
-        return;
-    }
-    if (match.joins !== 2){
         return;
     }
     let playerIndex = match.player1 === playerNumber ? "player1" : "player2";

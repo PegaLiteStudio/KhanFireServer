@@ -76,6 +76,7 @@ class LudoGame {
         this.#matchExpireTimeOut = null;
         this.diceNumber = null;
         this.responseCode = generateRandomID();
+        this.lifeCount = {}
     }
 
     startMath() {
@@ -103,8 +104,8 @@ class LudoGame {
         console.log("Match Cancelled");
         this.state = 2;
         this.publishUpdate("match-cancelled", this.generateResponseCode());
-        await PrimaryUserModel.updateOne({number : this.playersByTurn[0]}, {$inc: {gBalance: this.#MATCH.entryFee}});
-        await PrimaryUserModel.updateOne({number : this.playersByTurn[1]}, {$inc: {gBalance: this.#MATCH.entryFee}});
+        await PrimaryUserModel.updateOne({number: this.playersByTurn[0]}, {$inc: {gBalance: this.#MATCH.entryFee}});
+        await PrimaryUserModel.updateOne({number: this.playersByTurn[1]}, {$inc: {gBalance: this.#MATCH.entryFee}});
         await insertMatchRefundTransaction(this.playersByTurn[0], this.#MATCH.entryFee, this.roomId);
         await insertMatchRefundTransaction(this.playersByTurn[1], this.#MATCH.entryFee, this.roomId);
         await RealtimeRoomModel.deleteOne({roomID: this.roomId});
@@ -199,12 +200,21 @@ class LudoGame {
             return;
         }
         this.clearTurnTimeout();
-        console.log(from, "Current Turn", this.TURN, "Number", this.playersByTurn[this.TURN]);
+        let playerNumber = this.playersByTurn[this.TURN];
+        console.log(from, "Current Turn", this.TURN, "Number", playerNumber);
 
-        this.publishUpdate("ask-throw-dice", this.generateResponseCode(), this.playersByTurn[this.TURN], this.TURN)
-        this.#timeout = setTimeout(() => {
-            this.flipDiceTurn();
-            this.checkForDiceRoll("2");
+        this.publishUpdate("ask-throw-dice", this.generateResponseCode(), playerNumber, this.TURN)
+        this.#timeout = setTimeout(async () => {
+            if (this.lifeCount[playerNumber] === 0) {
+                await this.onPlayerWin(this.TURN === 0 ? "player2" : "player1");
+                return;
+            }
+            this.lifeCount[playerNumber]--;
+            console.log("One Life Taken from", playerNumber, "Remaining", this.lifeCount[playerNumber]);
+            this.publishUpdate("life-update", this.TURN, this.lifeCount[playerNumber]);
+            this.onDiceRoll(playerNumber, this.responseCode, true);
+            // this.flipDiceTurn();
+            // this.checkForDiceRoll("2");
         }, this.DICE_THROW_ASK_TIMEOUT);
     }
 
@@ -218,7 +228,7 @@ class LudoGame {
      * Player must contain
      * playerNumber
      * */
-    onDiceRoll(playerNumber, responseCode) {
+    onDiceRoll(playerNumber, responseCode, isAuto) {
         if (this.responseCode !== responseCode) {
             return;
         }
@@ -239,6 +249,13 @@ class LudoGame {
             return;
         }
         this.publishUpdate("dice-rolled", this.generateResponseCode(), currentTurn, this.diceNumber)
+        if (eligiblePieces.length > 1 && isAuto) {
+            let piece = eligiblePieces[Math.floor(Math.random() * eligiblePieces.length)];
+            if (!this.#BASE_POSITIONS[player.index].includes(piece.position)) {
+                this.onPieceIncrement(piece.id);
+            }
+            // this.onPieceMove(piece.id, this.#START_POSITIONS[player.index]);
+        }
         if (eligiblePieces.length === 0) {
             if (this.diceNumber === 6) {
                 this.flipDiceTurn();
@@ -248,7 +265,7 @@ class LudoGame {
         }
         this.#timeout = setTimeout(() => {
             this.checkForDiceRoll("4");
-        }, 7000);
+        }, this.DICE_THROW_ASK_TIMEOUT);
     }
 
     incrementPosition(player, piece) {
@@ -291,11 +308,12 @@ class LudoGame {
         }
     }
 
+    // Player Index;
     async onPlayerWin(player) {
         this.state = 2;
         this.publishUpdate("player-win", this.generateResponseCode(), player);
         let number = this.#MATCH[player];
-        await PrimaryUserModel.updateOne({number}, {$inc: {wBalance: this.#MATCH.prize, tWinnings : this.#MATCH.prize}});
+        await PrimaryUserModel.updateOne({number}, {$inc: {wBalance: this.#MATCH.prize, tWinnings: this.#MATCH.prize}});
         await insertMatchWinTransaction(number, this.#MATCH.prize, this.roomId);
         await RealtimeRoomModel.deleteOne({roomID: this.roomId});
         let match = new AllMatchesHistoryModel({
@@ -420,6 +438,7 @@ class LudoGame {
             return;
         }
         let turn = playerIndex === "player1" ? 0 : 1;
+        this.lifeCount[playerNumber] = 5;
         this.playersByTurn[turn] = playerNumber;
         this.players[playerNumber] = {
             index: playerIndex, turn
