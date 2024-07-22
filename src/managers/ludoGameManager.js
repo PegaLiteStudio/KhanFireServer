@@ -404,8 +404,7 @@ class LudoGame {
         let pieces = this.getPiecesOfPlayer(playerIndex);
         Object.entries(pieces).forEach(([pieceKey, pieceValue]) => {
             console.log("ok", pieceValue, pieceKey)
-            if (this.#BASE_POSITIONS[playerIndex].includes(pieceValue.position) || this.#HOME_POSITIONS[playerIndex] === pieceValue.position || this.#HOME_ENTRANCE[playerIndex].includes(pieceValue.position)) {
-                console.log(pieceKey, pieceValue)
+            if (this.#BASE_POSITIONS[playerIndex].includes(pieceValue.position) || this.#HOME_POSITIONS[playerIndex] === pieceValue.position || this.#HOME_ENTRANCE[playerIndex].includes(pieceValue.position) || this.#SAFE_POSITIONS.includes(pieceValue.position)) {
                 return;
             }
             for (let i = 1; i < 7; i++) {
