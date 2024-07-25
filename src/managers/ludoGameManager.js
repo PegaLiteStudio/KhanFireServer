@@ -133,6 +133,10 @@ class LudoGame {
     matchUpdate(...args) {
         this.startMatchExpire();
         let msg = args[1];
+        if(msg === "message"){
+            this.publishUpdate("message", args[2], args[3]);
+            return;
+        }
         let responseCode = args[2];
         if (responseCode !== this.responseCode) {
             return;
@@ -313,7 +317,7 @@ class LudoGame {
         this.state = 2;
         this.publishUpdate("player-win", this.generateResponseCode(), player);
         let number = this.#MATCH[player];
-        await PrimaryUserModel.updateOne({number}, {$inc: {wBalance: this.#MATCH.prize, tWinnings: this.#MATCH.prize}});
+        await PrimaryUserModel.updateOne({number}, {$inc: {wBalance: this.#MATCH.prize, tWinnings: this.#MATCH.prize,tLifeWinnings: this.#MATCH.prize}});
         await insertMatchWinTransaction(number, this.#MATCH.prize, this.roomId);
         await RealtimeRoomModel.deleteOne({roomID: this.roomId});
         let match = new AllMatchesHistoryModel({

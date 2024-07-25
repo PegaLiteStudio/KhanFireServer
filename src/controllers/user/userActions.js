@@ -146,7 +146,6 @@ const getTopPlayers = async (req, res) => {
 
     }
     respondSuccessWithData(res, finalTopPlayers)
-
 }
 
 const getBalances = (req, res) => {
@@ -155,6 +154,7 @@ const getBalances = (req, res) => {
         gBalance: user.gBalance,
         wBalance: user.wBalance,
         tWinnings: user.tWinnings,
+        tLifeWinnings: user.tLifeWinnings,
         totalReferEarnings: user.totalReferEarnings
     });
 }

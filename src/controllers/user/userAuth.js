@@ -188,6 +188,7 @@ const userSessionLogin = async (req, res) => {
             gBalance: user.gBalance,
             wBalance: user.wBalance,
             tWinnings: user.tWinnings,
+            tLifeWinnings: user.tLifeWinnings,
             referCode: user.referCode,
             totalReferRegistration: user.totalReferRegistration,
             totalReferEarnings: user.totalReferEarnings,

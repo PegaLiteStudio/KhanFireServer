@@ -16,6 +16,7 @@ const primaryUserSchema = new mongoose.Schema({
     gBalance: {type: Number, default: 0}, // Game Balance
     wBalance: {type: Number, default: 0}, // Winning Balance
     tWinnings: {type: Number, default: 0}, // Total  Winnings
+    tLifeWinnings: {type: Number, default: 0}, // Total  Winnings
     totalReferRegistration: {type: Number, default: 0}, // Total Refer Registration
     totalReferEarnings: {type: Number, default: 0}, // Total Refer Earnings
     totalMatchesPlayed: {type: Number, default: 0}, // Total Matches Played
