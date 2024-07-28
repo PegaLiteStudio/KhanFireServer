@@ -7,7 +7,7 @@ const getJWT = (number, pass, deviceID) => {
 
     let jwtSecretKey = process.env.JWT_SECRET_KEY;
     return jwt.sign(data, jwtSecretKey, {
-        expiresIn: "7d"
+        expiresIn: "25d"
     });
 }
 

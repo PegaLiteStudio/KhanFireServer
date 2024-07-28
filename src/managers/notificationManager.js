@@ -7,13 +7,28 @@ const sendNotification = (to, title, body, image) => {
     }
 
     const message = {
-        topic: to, notification: {
+        topic: to,
+        notification: {
             title, body, image
         }, android: {
             priority: 'high', notification: {
+                channel_id: "high_importance_channel",
                 icon: "app_icon", sound: "default", color: "#bb2231"
             }
-        },
+        }, apns: {
+            headers: {
+                'apns-priority': '10',
+            },
+            payload: {
+                aps: {
+                    alert: {
+                        title, body, image
+                    },
+                    sound: 'default',
+                    "content-available": 1
+                },
+            },
+        }
     };
 
     admin.messaging().send(message).then((response) => {
