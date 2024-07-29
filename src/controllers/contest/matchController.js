@@ -3,7 +3,7 @@ const {generateRandomID} = require("../../helpers/appHelper");
 const {respondSuccessWithData, respondFailed} = require("../../managers/responseManager");
 const {PrimaryUserModel} = require("../../models/userModels");
 const {
-    insertMatchJoinTransaction, insertMatchRefundTransaction
+    insertMatchJoinTransaction, insertMatchRefundTransaction, insertMatchJoinTransactionWithWinning
 } = require("../../managers/transactionManager");
 const schedule = require('node-schedule');
 const {ScheduleJobModel} = require("../../models/appModels");
@@ -257,18 +257,24 @@ const joinMatch = async (req, res) => {
     }
 
     let gBalance = req.user.gBalance;
+    let wBalance = req.user.wBalance;
     let entryFee = match.entryFee;
 
-    if (entryFee > gBalance) {
+    if (entryFee > gBalance && entryFee > wBalance) {
         return respondFailed(res, "700");
     }
 
-    await PrimaryUserModel.updateOne({number}, {$inc: {gBalance: -entryFee}});
-
-    let finalBalance = gBalance - entryFee;
-    io.to(connectedUsers[number]).emit("balance-update", "g", finalBalance);
-
-    await insertMatchJoinTransaction(number, entryFee, matchID);
+    if (gBalance > entryFee) {
+        await PrimaryUserModel.updateOne({number}, {$inc: {gBalance: -entryFee}});
+        let finalBalance = gBalance - entryFee;
+        io.to(connectedUsers[number]).emit("balance-update", "g", finalBalance);
+        await insertMatchJoinTransaction(number, entryFee, matchID);
+    } else {
+        await PrimaryUserModel.updateOne({number}, {$inc: {wBalance: -entryFee}});
+        let finalBalance = wBalance - entryFee;
+        io.to(connectedUsers[number]).emit("balance-update", "w", finalBalance);
+        await insertMatchJoinTransactionWithWinning(number, entryFee, matchID);
+    }
 
     let gameID = match.gameID;
     if (!match.hasOwnProperty("player1")) {

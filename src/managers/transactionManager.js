@@ -26,6 +26,9 @@ const insertTransaction = async (number, amount, iN, foR, status, description, t
 const insertMatchJoinTransaction = async (number, amount, description) => {
     await insertTransaction(number, amount, "g", "match-join", "d", description);
 }
+const insertMatchJoinTransactionWithWinning = async (number, amount, description) => {
+    await insertTransaction(number, amount, "w", "match-join", "d", description);
+}
 
 const insertMatchRefundTransaction = async (number, amount, description) => {
     await insertTransaction(number, amount, "g", "match-refund", "c", description);
@@ -36,7 +39,7 @@ const insertMatchWinTransaction = async (number, amount, description) => {
 }
 
 module.exports = {
-    insertTransaction, insertMatchJoinTransaction, insertMatchRefundTransaction, insertMatchWinTransaction
+    insertTransaction, insertMatchJoinTransaction,insertMatchJoinTransactionWithWinning, insertMatchRefundTransaction, insertMatchWinTransaction
 
 }
 
