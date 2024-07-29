@@ -133,7 +133,7 @@ class LudoGame {
     matchUpdate(...args) {
         this.startMatchExpire();
         let msg = args[1];
-        if(msg === "message"){
+        if (msg === "message") {
             this.publishUpdate("message", args[2], args[3]);
             return;
         }
@@ -267,8 +267,24 @@ class LudoGame {
             this.checkForDiceRoll("3");
             return;
         }
-        this.#timeout = setTimeout(() => {
-            this.checkForDiceRoll("4");
+        this.#timeout = setTimeout(async () => {
+            if (this.lifeCount[playerNumber] === 0) {
+                await this.onPlayerWin(currentTurn === 0 ? "player2" : "player1");
+                return;
+            }
+            this.lifeCount[playerNumber]--;
+            console.log("One Life Taken from", playerNumber, "Remaining", this.lifeCount[playerNumber]);
+            this.publishUpdate("life-update", currentTurn, this.lifeCount[playerNumber]);
+            if (eligiblePieces.length > 1) {
+                let piece = eligiblePieces[Math.floor(Math.random() * eligiblePieces.length)];
+                if (!this.#BASE_POSITIONS[player.index].includes(piece.position)) {
+                    this.onPieceIncrement(piece.id);
+                } else {
+                    this.checkForDiceRoll("4");
+                }
+            } else {
+                this.checkForDiceRoll("4");
+            }
         }, this.DICE_THROW_ASK_TIMEOUT);
     }
 
@@ -317,7 +333,13 @@ class LudoGame {
         this.state = 2;
         this.publishUpdate("player-win", this.generateResponseCode(), player);
         let number = this.#MATCH[player];
-        await PrimaryUserModel.updateOne({number}, {$inc: {wBalance: this.#MATCH.prize, tWinnings: this.#MATCH.prize,tLifeWinnings: this.#MATCH.prize}});
+        await PrimaryUserModel.updateOne({number}, {
+            $inc: {
+                wBalance: this.#MATCH.prize,
+                tWinnings: this.#MATCH.prize,
+                tLifeWinnings: this.#MATCH.prize
+            }
+        });
         await insertMatchWinTransaction(number, this.#MATCH.prize, this.roomId);
         await RealtimeRoomModel.deleteOne({roomID: this.roomId});
         let match = new AllMatchesHistoryModel({
