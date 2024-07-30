@@ -73,7 +73,6 @@ const editAdmin = async (req, res) => {
     }   
 
     await AdminModel.updateOne({number}, {$set: changes})
-    console.log(changes)
     io.to(connectedUsers["admin-" + number]).emit("update", changes);
     respondSuccess(res);
 

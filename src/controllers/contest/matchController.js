@@ -189,7 +189,6 @@ const cancelScheduledPlayerWaiting = async (roomID) => {
     }
 };
 const exitMatch = async (roomID, playerNumber) => {
-    console.log("Match Exit")
     let match = await RealtimeRoomModel.findOne({roomID});
     if (match) {
         let pIndex = "player1";
@@ -197,7 +196,6 @@ const exitMatch = async (roomID, playerNumber) => {
             pIndex = "player2";
         }
         await matches[roomID].onPlayerWin(pIndex);
-        console.log("Match Exited")
     }
     delete matches[roomID];
 }
@@ -209,7 +207,6 @@ const onReconnect = (roomID, playerNumber) => {
 
 function sendPlayerJoinedMessage(socketNumber, roomID, number, name, dp, attempt = 0) {
     if (attempt >= MAX_RETRIES) {
-        console.log('Failed to deliver message after 60 seconds');
         return;
     }
 
@@ -317,8 +314,6 @@ const joinMatch = async (req, res) => {
             });
             await realtimeRoom.save();
 
-            console.log("Realtime Match Saved")
-
             let player1 = await PrimaryUserModel.findOne({number: match.player1});
 
             matchData = {matchID, roomID: match.roomID, number: player1.number, name: player1.name, dp: player1.dp};
@@ -335,7 +330,6 @@ const joinMatch = async (req, res) => {
 }
 
 const matchUpdate = async (...args) => {
-    console.log(...args);
     if (args[1] === "match-exit") {
         await exitMatch(args[0], args[2])
         return
@@ -350,12 +344,10 @@ const playerReadyFinal = (roomID, playerNumber) => {
     matches[roomID].playerReady(playerNumber);
     if (matches[roomID].isReadyToStart()) {
         matches[roomID].startMath();
-        console.log("Match Started")
     }
 }
 
 const playerReady = async (roomID, playerNumber) => {
-    console.log("player Ready", playerNumber)
     let match = await RealtimeRoomModel.findOne({roomID});
     if (!match) {
         if (matches.hasOwnProperty(roomID)) {
@@ -374,10 +366,8 @@ const playerReady = async (roomID, playerNumber) => {
     if (matches[roomID].isReadyToInit()) {
         io.to(connectedUsers[match.player1]).emit(roomID, "init-match", matches[roomID].getPlayerIndex(match.player1));
         io.to(connectedUsers[match.player2]).emit(roomID, "init-match", matches[roomID].getPlayerIndex(match.player2));
-        console.log("Init Match")
         await cancelScheduledPlayerWaiting(roomID);
     }
-    console.log(matches[roomID])
 }
 
 const loadScheduledJobs = async () => {

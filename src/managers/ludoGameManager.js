@@ -86,7 +86,6 @@ class LudoGame {
         this.state = 1;
         this.startTime = getIndianTime();
         this.startMatchExpire();
-        console.log("Match Started")
         this.checkForDiceRoll("1")
     }
 
@@ -101,7 +100,6 @@ class LudoGame {
     }
 
     async cancelMatch() {
-        console.log("Match Cancelled");
         this.state = 2;
         this.publishUpdate("match-cancelled", this.generateResponseCode());
         await PrimaryUserModel.updateOne({number: this.playersByTurn[0]}, {$inc: {gBalance: this.#MATCH.entryFee}});
@@ -148,7 +146,6 @@ class LudoGame {
         } else if (msg === "piece-increment") {
             this.onPieceIncrement(args[3]); // Piece ID & new Position
         }
-        console.log(msg)
     }
 
     generateResponseCode() {
@@ -175,7 +172,6 @@ class LudoGame {
 
     getPlayerByPiece(pieceID) {
         let player1 = this.players[Object.keys(this.players)[0]];
-        console.log(pieceID.split("_")[0])
         return player1.index === pieceID.split("_")[0] ? player1 : this.players[Object.keys(this.players)[1]];
     }
 
@@ -199,13 +195,12 @@ class LudoGame {
     }
 
 
-    checkForDiceRoll(from) {
+    checkForDiceRoll() {
         if (this.state === 2) {
             return;
         }
         this.clearTurnTimeout();
         let playerNumber = this.playersByTurn[this.TURN];
-        console.log(from, "Current Turn", this.TURN, "Number", playerNumber);
 
         this.publishUpdate("ask-throw-dice", this.generateResponseCode(), playerNumber, this.TURN)
         this.#timeout = setTimeout(async () => {
@@ -214,7 +209,6 @@ class LudoGame {
                 return;
             }
             this.lifeCount[playerNumber]--;
-            console.log("One Life Taken from", playerNumber, "Remaining", this.lifeCount[playerNumber]);
             this.publishUpdate("life-update", this.TURN, this.lifeCount[playerNumber]);
             this.onDiceRoll(playerNumber, this.responseCode, true);
             // this.flipDiceTurn();
@@ -223,7 +217,6 @@ class LudoGame {
     }
 
     publishUpdate(...args) {
-        console.log("Publish Update", ...args)
         io.to(connectedUsers[this.playersReady[0]]).emit(this.roomId, ...args);
         io.to(connectedUsers[this.playersReady[1]]).emit(this.roomId, ...args);
     }
@@ -242,11 +235,8 @@ class LudoGame {
         if (this.diceNumber !== 6) {
             this.flipDiceTurn();
         }
-        console.log(currentTurn + " :)")
         let player = this.getPlayer(playerNumber);
-        console.log("d", this.diceNumber)
         let eligiblePieces = this.getEligiblePieces(player, this.diceNumber);
-        console.log(eligiblePieces)
         if (eligiblePieces.length === 1 && !this.#BASE_POSITIONS[player.index].includes(eligiblePieces[0].position)) {
             this.publishUpdate("dice-rolled-inc", this.generateResponseCode(), currentTurn, this.diceNumber, eligiblePieces[0].id)
             this.incrementPosition(player, eligiblePieces[0]);
@@ -273,7 +263,6 @@ class LudoGame {
                 return;
             }
             this.lifeCount[playerNumber]--;
-            console.log("One Life Taken from", playerNumber, "Remaining", this.lifeCount[playerNumber]);
             this.publishUpdate("life-update", currentTurn, this.lifeCount[playerNumber]);
             if (eligiblePieces.length > 1) {
                 let piece = eligiblePieces[Math.floor(Math.random() * eligiblePieces.length)];
@@ -324,7 +313,6 @@ class LudoGame {
             let pieceID = Object.keys(pieces)[0];
             this.TURN = player.turn;
             this.pieces[pieceID].position = pieceID.replace("piece", "position");
-            console.log("Piece Killed ", pieceID)
         }
     }
 
@@ -375,7 +363,6 @@ class LudoGame {
         this.playersReady = [];
         this.playersByTurn = {};
         this.pieces = {};
-        console.log("Cleanup Complete");
     }
 
     onPieceMove(pieceID, position) {
@@ -385,7 +372,6 @@ class LudoGame {
     }
 
     onPieceIncrement(pieceID) {
-        console.log(pieceID, this.getPlayerByPiece(pieceID));
         this.incrementPosition(this.getPlayerByPiece(pieceID), this.getPieceByID(pieceID))
         this.publishUpdate("increment-piece", this.generateResponseCode(), pieceID, this.diceNumber)
     }
@@ -413,14 +399,12 @@ class LudoGame {
 
     generateDiceNumber(playerNumber) {
         let diceExcludeList = this.getDiceExcludeList(playerNumber);
-        console.log(diceExcludeList);
         let validNumbers = [];
         for (let i = 1; i <= 6; i++) {
             if (!diceExcludeList.includes(i)) {
                 validNumbers.push(i);
             }
         }
-        console.log(validNumbers);
         return validNumbers[Math.floor(Math.random() * validNumbers.length)];
     }
 
@@ -429,7 +413,6 @@ class LudoGame {
         let playerIndex = this.getPlayerIndex(playerNumber);
         let pieces = this.getPiecesOfPlayer(playerIndex);
         Object.entries(pieces).forEach(([pieceKey, pieceValue]) => {
-            console.log("ok", pieceValue, pieceKey)
             if (this.#BASE_POSITIONS[playerIndex].includes(pieceValue.position) || this.#HOME_POSITIONS[playerIndex] === pieceValue.position || this.#HOME_ENTRANCE[playerIndex].includes(pieceValue.position)) {
                 return;
             }
@@ -487,7 +470,6 @@ class LudoGame {
     }
 
     onReconnect(playerNumber) {
-        console.log(this.pieces);
         io.to(connectedUsers[playerNumber]).emit(this.roomId, "onReConnect", this.pieces);
     }
 

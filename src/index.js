@@ -57,22 +57,18 @@ admin.initializeApp({
 });
 
 io.on('connection', (socket) => {
-    console.log('A device connected:', socket.id);
 
     // Store connected users
     const {number} = socket.handshake.query;
     if (number) {
         connectedUsers[number] = socket.id;
-        console.log('Connected users:', connectedUsers);
     }
 
     socket.on('disconnect', () => {
-        console.log(`Device disconnected: ${socket.id}`);
         if (number && connectedUsers[number]) {
             if (connectedUsers[number] === socket.id) {
                 delete connectedUsers[number];
             }
-            console.log('Updated connected users:', connectedUsers);
         }
     });
 
