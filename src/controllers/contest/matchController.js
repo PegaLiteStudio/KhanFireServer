@@ -13,7 +13,7 @@ const LudoGame = require("../../managers/ludoGameManager")
 
 const scheduledJobs = {};
 const scheduledPlayerWaitingJobs = {};
-const PLAYER_SEARCH_EXPIRE = 1;
+const PLAYER_SEARCH_EXPIRE = 4;
 const PLAYER_WAITING_EXPIRE = 1;
 const MAX_RETRIES = 12; // 12 times (every 5 seconds for 60 seconds)
 const RETRY_INTERVAL = 5000; // 5 seconds
@@ -314,6 +314,7 @@ const joinMatch = async (req, res) => {
             });
             await realtimeRoom.save();
 
+
             let player1 = await PrimaryUserModel.findOne({number: match.player1});
 
             matchData = {matchID, roomID: match.roomID, number: player1.number, name: player1.name, dp: player1.dp};
@@ -338,7 +339,6 @@ const matchUpdate = async (...args) => {
 }
 
 const showGameStatus = (roomID) => {
-    console.log(matches[roomID]);
 }
 const playerReadyFinal = (roomID, playerNumber) => {
     matches[roomID].playerReady(playerNumber);

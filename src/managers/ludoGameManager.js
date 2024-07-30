@@ -19,7 +19,7 @@ class LudoGame {
 
     constructor(roomId, match) {
         this.#MATCH = match;
-        this.DICE_THROW_ASK_TIMEOUT = 12000;
+        this.DICE_THROW_ASK_TIMEOUT = 20000;
         this.MATCH_EXPIRE_TIMEOUT = 300000; // 5 Minutes
         this.roomId = roomId;
         this.initTime = getIndianTime();
